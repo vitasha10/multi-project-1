@@ -1,6 +1,7 @@
 #include "menu_functions.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <limits> // добавлено для std::numeric_limits
 
 const vitashaa::MenuItem* MenuFunctions::show_global_menu(const vitashaa::MenuItem* current) {
     std::cout << "0 - Вернуться на уровень выше / Выйти из программы" << std::endl;
@@ -11,9 +12,13 @@ const vitashaa::MenuItem* MenuFunctions::show_global_menu(const vitashaa::MenuIt
     std::cout << "Выберите пункт меню: ";
     int n;
     do {
-        std::cin >> n;
-        if (n > current->children_count) std::cout << "Неверный номер пункта, попробуйте снова!" << std::endl;
-    } while (n > current->children_count);
+        if (!(std::cin >> n) || n < 0 || n > current->children_count) {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "Неверный ввод, попробуйте снова!" << std::endl;
+            n = -1;
+        }
+    } while (n < 0 || n > current->children_count);
 
     if (n == 0) {
         if (current->parent == nullptr) {

@@ -1,3 +1,4 @@
 projects/lib
 build
 .vscode
+build_ninja

@@ -11,3 +11,4 @@ include_directories(projects/lib/googletest/googletest/include)
 
 add_subdirectory(projects/sort)
 add_subdirectory(projects/obuchaika)
+add_subdirectory(projects/long_number)

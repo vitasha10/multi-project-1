@@ -235,6 +235,7 @@ LongNumber LongNumber::operator-(const LongNumber& x) const {
     res.remove_leading_zeros();
     return res;
 }
+
 // Оператор *
 LongNumber LongNumber::operator*(const LongNumber& x) const {
     int new_length = length + x.length;
@@ -266,10 +267,10 @@ LongNumber LongNumber::operator/(const LongNumber& x) const {
 
     LongNumber dividend = *this;
     LongNumber divisor = x;
-
     int originalDividendSign = sign;
     int originalDivisorSign = x.sign;
 
+    // Work with absolute values
     dividend.sign = 1;
     divisor.sign = 1;
 
@@ -279,6 +280,7 @@ LongNumber LongNumber::operator/(const LongNumber& x) const {
     quotient.length = dividend.length;
     quotient.numbers = new int[quotient.length]();
 
+    // Perform division digit-by-digit
     for (int i = 0; i < dividend.length; ++i) {
         current = current * LongNumber("10") + LongNumber(std::to_string(dividend.numbers[i]));
         int digit = 0;
@@ -288,18 +290,20 @@ LongNumber LongNumber::operator/(const LongNumber& x) const {
         }
         quotient.numbers[i] = digit;
     }
-
     quotient.remove_leading_zeros();
 
+    // Set the sign of the quotient
+    quotient.sign = (originalDividendSign == originalDivisorSign) ? 1 : -1;
+
+    // Adjust quotient for negative dividend to ensure non-negative remainder
     if (originalDividendSign == -1 && !(current == LongNumber("0"))) {
         if (originalDivisorSign == 1) {
-            quotient = quotient - LongNumber("1");
+            quotient = quotient - LongNumber("1");  // Decrease quotient (e.g., -16 to -17)
         } else {
-            quotient = quotient + LongNumber("1");
+            quotient = quotient + LongNumber("1");  // Increase quotient (e.g., 16 to 17)
         }
     }
 
-    quotient.sign = (originalDividendSign == originalDivisorSign) ? 1 : -1;
     quotient.remove_leading_zeros();
     return quotient;
 }
@@ -309,12 +313,17 @@ bool LongNumber::operator>=(const LongNumber& x) const {
 }
 // Оператор %
 LongNumber LongNumber::operator%(const LongNumber& x) const {
-    LongNumber mod = *this - ((*this / x) * x);
-    if (mod.sign == -1) {
-        mod = mod + (x.sign == -1 ? -x : x);
+    if (x == LongNumber("0")) {
+        throw std::invalid_argument("Division by zero");
     }
-    mod.remove_leading_zeros();
-    return mod;
+    LongNumber quotient = *this / x;
+    LongNumber remainder = *this - (quotient * x);
+    if (remainder.sign == -1) {
+        LongNumber abs_divisor = (x.sign == 1) ? x : -x;
+        remainder = remainder + abs_divisor;
+    }
+    remainder.remove_leading_zeros();
+    return remainder;
 }
 
 LongNumber LongNumber::operator-() const {

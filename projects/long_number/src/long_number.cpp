@@ -149,35 +149,38 @@ bool LongNumber::operator>(const LongNumber& x) const {
 
 // Арифметические операторы (+)
 LongNumber LongNumber::operator+(const LongNumber& x) const {
-    // Если разные знаки, преобразуем в вычитание
     if (sign != x.sign) {
-        LongNumber copy = x;
-        copy.sign *= -1;
-        return *this - copy;
+        if (sign == -1) {
+            LongNumber tmp = *this;
+            tmp.sign = 1;
+            return x - tmp; // x - abs(this)
+        } else {
+            LongNumber tmp = x;
+            tmp.sign = 1;
+            return *this - tmp; // this - abs(x)
+        }
     }
 
-    // Одинаковые знаки
+    // Сложение чисел с одинаковыми знаками (уже было выше)
     int max_len = std::max(length, x.length);
-    int* result = new int[max_len + 1];
+    int* result = new int[max_len + 1]();
 
     int carry = 0;
     int i = length - 1, j = x.length - 1, k = max_len;
 
-    while (i > 0 || j > 0 || i == 0 || j == 0 || carry != 0) {
-        int digit1 = (i > 0 || i == 0) ? numbers[i] : 0;
-        int digit2 = (j > 0 || j == 0) ? x.numbers[j] : 0;
+    while (i >= 0 || j >= 0 || carry) {
+        int digit1 = (i >= 0) ? numbers[i] : 0;
+        int digit2 = (j >= 0) ? x.numbers[j] : 0;
 
-        result[k] = digit1 + digit2 + carry;
-        carry = result[k] / 10;
-        result[k] %= 10;
+        int sum = digit1 + digit2 + carry;
+        result[k] = sum % 10;
+        carry = sum / 10;
 
-        --i;
-        --j;
-        --k;
+        --i; --j; --k;
     }
 
     LongNumber res;
-    res.length = max_len + 1 - k - 1;
+    res.length = max_len + 1 - (k + 1);
     res.numbers = new int[res.length];
     memcpy(res.numbers, result + k + 1, res.length * sizeof(int));
     res.sign = sign;
@@ -188,29 +191,27 @@ LongNumber LongNumber::operator+(const LongNumber& x) const {
 }
 
 // Оператор -
+
 LongNumber LongNumber::operator-(const LongNumber& x) const {
-    // Если знаки разные, то преобразуем в сложение
     if (sign != x.sign) {
         LongNumber copy = x;
         copy.sign *= -1;
         return *this + copy;
     }
 
-    // Если текущий объект меньше, результат будет отрицательным
     if (*this < x) {
         LongNumber result = x - *this;
         result.sign *= -1;
         return result;
     }
 
-    // Одинаковые знаки и this > || = x
     int* result = new int[length];
     int borrow = 0;
 
     int i = length - 1, j = x.length - 1, k = length - 1;
-    while (i > 0 || j > 0 || i == 0 || j == 0) {
-        int digit1 = (i > 0 || i == 0) ? numbers[i] : 0;
-        int digit2 = (j > 0 || j == 0) ? x.numbers[j] : 0;
+    while (i >= 0 || j >= 0) {
+        int digit1 = (i >= 0) ? numbers[i] : 0;
+        int digit2 = (j >= 0) ? x.numbers[j] : 0;
 
         int diff = digit1 - digit2 - borrow;
         if (diff < 0) {
@@ -234,27 +235,25 @@ LongNumber LongNumber::operator-(const LongNumber& x) const {
     res.remove_leading_zeros();
     return res;
 }
-
 // Оператор *
 LongNumber LongNumber::operator*(const LongNumber& x) const {
-    int* result = new int[length + x.length]();
-    // Результат умножения массивов может иметь максимум length + x.length цифр
-
-    for (int i = length - 1; i > 0 || i == 0; --i) {
+    int new_length = length + x.length;
+    int* result = new int[new_length]();
+    
+    for (int i = length - 1; i >= 0; --i) {
         int carry = 0;
-        for (int j = x.length - 1; j > 0 || j == 0; --j) {
-            int product = numbers[i] * x.numbers[j] + result[i + j + 1] + carry;
-            result[i + j + 1] = product % 10;
-            carry = product / 10;
+        for (int j = x.length - 1; j >= 0; --j) {
+            int temp = numbers[i] * x.numbers[j] + result[i + j + 1] + carry;
+            result[i + j + 1] = temp % 10;
+            carry = temp / 10;
         }
         result[i] += carry;
     }
 
     LongNumber res;
-    res.length = length + x.length;
+    res.length = new_length;
     res.numbers = result;
     res.sign = sign * x.sign;
-
     res.remove_leading_zeros();
     return res;
 }
@@ -265,59 +264,65 @@ LongNumber LongNumber::operator/(const LongNumber& x) const {
         throw std::invalid_argument("Division by zero");
     }
 
-    LongNumber dividend(*this);
-    LongNumber divisor(x);
-    dividend.sign = divisor.sign = 1;
+    LongNumber dividend = *this;
+    LongNumber divisor = x;
 
-    if (dividend < divisor) {
-        return LongNumber("0");
-    }
+    int originalDividendSign = sign;
+    int originalDivisorSign = x.sign;
 
-    int* result = new int[length]();
+    dividend.sign = 1;
+    divisor.sign = 1;
+
+    LongNumber quotient("0");
     LongNumber current("0");
-    for (int i = 0; i < length; ++i) {
-        current = current * LongNumber("10") + LongNumber(std::to_string(numbers[i]).c_str());
-        int count = 0;
-        while (current > divisor || current == divisor) {
+
+    quotient.length = dividend.length;
+    quotient.numbers = new int[quotient.length]();
+
+    for (int i = 0; i < dividend.length; ++i) {
+        current = current * LongNumber("10") + LongNumber(std::to_string(dividend.numbers[i]));
+        int digit = 0;
+        while (current >= divisor) {
             current = current - divisor;
-            ++count;
+            digit++;
         }
-        result[i] = count;
+        quotient.numbers[i] = digit;
     }
 
-    LongNumber res;
-    res.length = length;
-    res.numbers = result;
-    res.sign = sign * x.sign;
+    quotient.remove_leading_zeros();
 
-    res.remove_leading_zeros();
-    return res;
+    if (originalDividendSign == -1 && !(current == LongNumber("0"))) {
+        if (originalDivisorSign == 1) {
+            quotient = quotient - LongNumber("1");
+        } else {
+            quotient = quotient + LongNumber("1");
+        }
+    }
+
+    quotient.sign = (originalDividendSign == originalDivisorSign) ? 1 : -1;
+    quotient.remove_leading_zeros();
+    return quotient;
 }
 
+bool LongNumber::operator>=(const LongNumber& x) const {
+    return !(*this < x);
+}
 // Оператор %
 LongNumber LongNumber::operator%(const LongNumber& x) const {
-    if (x == LongNumber("0")) {
-        throw std::invalid_argument("Division by zero");
+    LongNumber mod = *this - ((*this / x) * x);
+    if (mod.sign == -1) {
+        mod = mod + (x.sign == -1 ? -x : x);
     }
+    mod.remove_leading_zeros();
+    return mod;
+}
 
-    LongNumber dividend(*this);
-    LongNumber divisor(x);
-    dividend.sign = divisor.sign = 1;
-
-    if (dividend < divisor) {
-        return dividend;
+LongNumber LongNumber::operator-() const {
+    LongNumber result(*this);
+    if (!(result == LongNumber("0"))) {
+        result.sign *= -1;
     }
-
-    LongNumber current("0");
-    for (int i = 0; i < length; ++i) {
-        current = current * LongNumber("10") + LongNumber(std::to_string(numbers[i]).c_str());
-        while (current > divisor || current == divisor) {
-            current = current - divisor;
-        }
-    }
-
-    current.sign = this->sign;
-    return current;
+    return result;
 }
 
 // Оператор << (дружественная функция)

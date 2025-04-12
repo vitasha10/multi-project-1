@@ -3,3 +3,4 @@ project(long_number)
 
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(test2)

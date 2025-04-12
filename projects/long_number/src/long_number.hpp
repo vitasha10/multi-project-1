@@ -12,12 +12,14 @@ namespace vitashaa {
 	public:
 		LongNumber();
 		LongNumber(const char* const str);
+		LongNumber(const std::string& str) : LongNumber(str.c_str()) {} // Added assignment operator
 		LongNumber(const LongNumber& x);
 		LongNumber(LongNumber&& x);
 
 		~LongNumber();
 
 		LongNumber& operator = (const char* const str);
+		LongNumber& operator = (const std::string& str); // Added assignment operator
 		LongNumber& operator = (const LongNumber& x);
 		LongNumber& operator = (LongNumber&& x);
 
@@ -25,7 +27,8 @@ namespace vitashaa {
 		bool operator != (const LongNumber& x) const;
 		bool operator > (const LongNumber& x) const;
 		bool operator < (const LongNumber& x) const;
-
+		bool operator>=(const LongNumber& x) const;
+		LongNumber operator-() const;
 		LongNumber operator + (const LongNumber& x) const;
 		LongNumber operator - (const LongNumber& x) const;
 		LongNumber operator * (const LongNumber& x) const;

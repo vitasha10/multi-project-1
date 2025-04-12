@@ -293,7 +293,7 @@ LongNumber LongNumber::operator/(const LongNumber& x) const {
 
     if (originalDividendSign == -1 && !(current == LongNumber("0"))) {
         if (originalDivisorSign == 1) {
-            quotient = quotient - LongNumber("1");
+            quotient = quotient + LongNumber("1");
         } else {
             quotient = quotient + LongNumber("1");
         }
@@ -310,10 +310,8 @@ bool LongNumber::operator>=(const LongNumber& x) const {
 // Оператор %
 LongNumber LongNumber::operator%(const LongNumber& x) const {
     LongNumber mod = *this - ((*this / x) * x);
-    if (mod.sign == -1) {
-        mod = mod + (x.sign == -1 ? -x : x);
-    }
-    mod.remove_leading_zeros();
+   
+   // mod.remove_leading_zeros();
     return mod;
 }
 

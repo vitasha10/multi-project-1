@@ -192,49 +192,79 @@ LongNumber LongNumber::operator+(const LongNumber& x) const {
 
 // Оператор -
 
-LongNumber LongNumber::operator-(const LongNumber& x) const {
-    if (sign != x.sign) {
-        LongNumber copy = x;
-        copy.sign *= -1;
-        return *this + copy;
+LongNumber LongNumber::operator-(const LongNumber& x) const
+{
+    /* ---------- 1. разные знаки  →  превращаем в сложение ---------- */
+    if (sign != x.sign)
+    {
+        LongNumber tmp = x;
+        tmp.sign *= -1;
+        return *this + tmp;
     }
 
-    if (*this < x) {
-        LongNumber result = x - *this;
-        result.sign *= -1;
-        return result;
+    /* ---------- 2. знаки одинаковые – сравниваем модули ------------ */
+    auto abs_less = [](const LongNumber& a, const LongNumber& b) -> bool
+    {
+        if (a.length != b.length) return a.length < b.length;
+        for (int i = 0; i < a.length; ++i)
+            if (a.numbers[i] != b.numbers[i])
+                return a.numbers[i] < b.numbers[i];
+        return false;                       // |a| == |b|
+    };
+
+    /* число с бо́льшим модулем ставим первым в операции вычитания     */
+    const LongNumber *big, *small;
+    int resultSign;
+
+    if (abs_less(*this, x))
+    {               // |*this| < |x|
+        big  = &x;
+        small = this;
+        resultSign = -sign;                 // знак меняется
+    }
+    else
+    {               // |*this| ≥ |x|
+        big  = this;
+        small = &x;
+        resultSign =  sign;                 // знак сохраняется
     }
 
-    int* result = new int[length];
+    /* ---------- 3. собственно вычитание «большое  –  маленькое» ---- */
+    int newLen = big->length;
+    int* result = new int[newLen]();        // zero‑fill
     int borrow = 0;
 
-    int i = length - 1, j = x.length - 1, k = length - 1;
-    while (i >= 0 || j >= 0) {
-        int digit1 = (i >= 0) ? numbers[i] : 0;
-        int digit2 = (j >= 0) ? x.numbers[j] : 0;
+    for (int ib = big->length - 1,
+             is = small->length - 1,
+             k  = newLen - 1;
+         k >= 0;
+         --ib, --is, --k)
+    {
+        int d1 = big->numbers[ib];
+        int d2 = (is >= 0) ? small->numbers[is] : 0;
 
-        int diff = digit1 - digit2 - borrow;
-        if (diff < 0) {
-            diff += 10;
+        int diff = d1 - d2 - borrow;
+        if (diff < 0)
+        {
+            diff  += 10;
             borrow = 1;
-        } else {
-            borrow = 0;
         }
-        result[k] = diff;
+        else
+            borrow = 0;
 
-        --i;
-        --j;
-        --k;
+        result[k] = diff;
     }
 
+    /* ---------- 4. формируем объект‑результат ---------------------- */
     LongNumber res;
-    res.length = length;
+    res.length  = newLen;
     res.numbers = result;
-    res.sign = sign;
-
-    res.remove_leading_zeros();
+    res.sign    = resultSign;
+    res.remove_leading_zeros();             // убираем ведущие нули,
+                                            // поправляем знак для нуля
     return res;
 }
+
 // Оператор *
 LongNumber LongNumber::operator*(const LongNumber& x) const {
     int new_length = length + x.length;

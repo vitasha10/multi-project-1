@@ -264,16 +264,19 @@ LongNumber LongNumber::operator/(const LongNumber& x) const
     if (x == LongNumber("0"))
         throw std::invalid_argument("Division by zero");
 
-    LongNumber dividend = *this;      // |a|
-    LongNumber divisor  =  x;         // |b|
-    const int originalDividendSign = dividend.sign;
-    const int originalDivisorSign  = divisor .sign;
+    /* --- работаем с копиями, чтобы не трогать исходные объекты --- */
+    LongNumber dividend = *this;   // a
+    LongNumber divisor  =  x;      // b
 
-    dividend.sign = divisor.sign = 1; // работаем с модулями
+    const int dividendSign = dividend.sign;
+    const int divisorSign  = divisor .sign;
 
+    dividend.sign = divisor.sign = 1;   // берём модули
+
+    /* --- обычное «долгое» деление для |a| / |b| ------------------ */
     LongNumber quotient("0"), current("0");
     quotient.length  = dividend.length;
-    quotient.numbers = new int[quotient.length]();
+    quotient.numbers = new int[quotient.length]();   // zero‑fill
 
     for (int i = 0; i < dividend.length; ++i)
     {
@@ -290,18 +293,21 @@ LongNumber LongNumber::operator/(const LongNumber& x) const
     }
     quotient.remove_leading_zeros();
 
-    /* ======== ВАЖНО: порядок! ======== */
-    /* 1. задаём правильный знак */
-    quotient.sign = (originalDividendSign == originalDivisorSign) ? 1 : -1;
+    /* ----------- ВАЖНО: порядок следующих двух шагов! ------------- */
 
-    /* 2. делаем евклидову поправку, если делимое было < 0 и остаток != 0 */
-    if (originalDividendSign == -1 && !(current == LongNumber("0")))
+    /* 1. сначала ставим правильный знак частному                    */
+    quotient.sign = (dividendSign == divisorSign) ? 1 : -1;
+
+    /* 2. затем, если делимое было <0 и остаток ≠0,                   */
+    /*    сдвигаем частное ещё на 1 в сторону –∞ (евклидово деление)  */
+    if (dividendSign == -1 && !(current == LongNumber("0")))
     {
-        if (originalDivisorSign == 1)     // делитель > 0 : «-q - 1»
+        if (divisorSign == 1)          // a<0, b>0  → q = -q - 1
             quotient = quotient - LongNumber("1");
-        else                              // делитель < 0 : «+q + 1»
+        else                           // a<0, b<0  → q = -q + 1
             quotient = quotient + LongNumber("1");
     }
+
     quotient.remove_leading_zeros();
     return quotient;
 }
@@ -310,10 +316,10 @@ bool LongNumber::operator>=(const LongNumber& x) const {
     return !(*this < x);
 }
 // Оператор %
-LongNumber LongNumber::operator%(const LongNumber& x) const {
+LongNumber LongNumber::operator%(const LongNumber& x) const
+{
     LongNumber mod = *this - ((*this / x) * x);
-   
-   // mod.remove_leading_zeros();
+    mod.remove_leading_zeros();    // <<— на случай, если остаток 0
     return mod;
 }
 

@@ -259,47 +259,49 @@ LongNumber LongNumber::operator*(const LongNumber& x) const {
 }
 
 // Оператор /
-LongNumber LongNumber::operator/(const LongNumber& x) const {
-    if (x == LongNumber("0")) {
+LongNumber LongNumber::operator/(const LongNumber& x) const
+{
+    if (x == LongNumber("0"))
         throw std::invalid_argument("Division by zero");
-    }
 
-    LongNumber dividend = *this;
-    LongNumber divisor = x;
+    LongNumber dividend = *this;      // |a|
+    LongNumber divisor  =  x;         // |b|
+    const int originalDividendSign = dividend.sign;
+    const int originalDivisorSign  = divisor .sign;
 
-    int originalDividendSign = sign;
-    int originalDivisorSign = x.sign;
+    dividend.sign = divisor.sign = 1; // работаем с модулями
 
-    dividend.sign = 1;
-    divisor.sign = 1;
-
-    LongNumber quotient("0");
-    LongNumber current("0");
-
-    quotient.length = dividend.length;
+    LongNumber quotient("0"), current("0");
+    quotient.length  = dividend.length;
     quotient.numbers = new int[quotient.length]();
 
-    for (int i = 0; i < dividend.length; ++i) {
-        current = current * LongNumber("10") + LongNumber(std::to_string(dividend.numbers[i]));
+    for (int i = 0; i < dividend.length; ++i)
+    {
+        current = current * LongNumber("10")
+                + LongNumber(std::to_string(dividend.numbers[i]));
+
         int digit = 0;
-        while (current >= divisor) {
+        while (current >= divisor)
+        {
             current = current - divisor;
-            digit++;
+            ++digit;
         }
         quotient.numbers[i] = digit;
     }
-
     quotient.remove_leading_zeros();
 
-    if (originalDividendSign == -1 && !(current == LongNumber("0"))) {
-        if (originalDivisorSign == 1) {
-            quotient = quotient + LongNumber("1");
-        } else {
-            quotient = quotient + LongNumber("1");
-        }
-    }
-
+    /* ======== ВАЖНО: порядок! ======== */
+    /* 1. задаём правильный знак */
     quotient.sign = (originalDividendSign == originalDivisorSign) ? 1 : -1;
+
+    /* 2. делаем евклидову поправку, если делимое было < 0 и остаток != 0 */
+    if (originalDividendSign == -1 && !(current == LongNumber("0")))
+    {
+        if (originalDivisorSign == 1)     // делитель > 0 : «-q - 1»
+            quotient = quotient - LongNumber("1");
+        else                              // делитель < 0 : «+q + 1»
+            quotient = quotient + LongNumber("1");
+    }
     quotient.remove_leading_zeros();
     return quotient;
 }

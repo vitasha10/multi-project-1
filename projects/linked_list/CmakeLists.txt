@@ -1,0 +1,13 @@
+add_executable(linked_list_tests
+    test_list.cpp
+    templates_list.cpp
+)
+
+target_include_directories(linked_list_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_link_libraries(linked_list_tests
+    gtest
+    gtest_main
+)
+
+add_test(NAME linked_list_tests COMMAND linked_list_tests)

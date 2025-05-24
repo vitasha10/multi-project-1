@@ -1,0 +1,13 @@
+add_executable(vector_tests
+    test_vector.cpp
+    templates_vector.cpp
+)
+
+target_include_directories(vector_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_link_libraries(vector_tests
+    gtest
+    gtest_main
+)
+
+add_test(NAME vector_tests COMMAND vector_tests)
